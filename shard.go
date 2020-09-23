@@ -120,7 +120,7 @@ func (s *shard) Subscribe(opts SubscribeOptions) (res result) {
 
 				sub, ok := subs[topicID]
 				if ok {
-					if sub.lastTouch > opts.EventOptions.Time {
+					if sub.lastTouch > opts.Time {
 						continue
 					}
 				} else {
@@ -128,7 +128,7 @@ func (s *shard) Subscribe(opts SubscribeOptions) (res result) {
 					subs[topicID] = sub
 				}
 
-				sub.lastTouch = opts.EventOptions.Time
+				sub.lastTouch = opts.Time
 				sub.state = activeSub
 				topic[client] = struct{}{}
 			}
