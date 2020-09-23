@@ -2,7 +2,7 @@ package pubsub
 
 import (
 	"context"
-	"pubsub/publication"
+	"github.com/RomanIschenko/pubsub/publication"
 )
 
 const DefaultPubQueueBufferSize = 4096

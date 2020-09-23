@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"os"
-	"pubsub/publication"
 	"time"
 )
 
@@ -106,20 +105,12 @@ func (p *Pubsub) clean() {
 func (p *Pubsub) Publish(opts PublishOptions) {
 	b := batch{opts.Clients, opts.Users, opts.Topics}
 
-	pubOpts := PublicationOptions{
-		Publication:  publication.Publication{
-			Data: opts.Data,
-			Time: opts.Time,
-		},
-		EventOptions: opts.EventOptions,
-	}
-
 	for shardIdx, batch := range p.distribute(b) {
 		shard := p.shards[shardIdx]
-		pubOpts.Topics = batch.topics
-		pubOpts.Users = batch.users
-		pubOpts.Clients = batch.clients
-		p.processActionResult(shardIdx, shard.Publish(pubOpts))
+		opts.Topics = batch.topics
+		opts.Users = batch.users
+		opts.Clients = batch.clients
+		p.processActionResult(shardIdx, shard.Publish(opts))
 	}
 }
 

@@ -1,0 +1,7 @@
+github.com/google/uuid v1.1.2 h1:EVhdT+1Kseyi1/pUmXKaFxYsDNy9RQYkMWRH68J/W7Y=
+github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0Ufc=
+github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
+github.com/igm/sockjs-go v1.0.0 h1:aTn8ZoamuYOVPoRVKzi2r9x3GPi+kVG2nMs5eFZlDiU=
+github.com/igm/sockjs-go v3.0.0+incompatible h1:4w5ztbp2brVLJYz+o3u0m7+zmuup6eZ/Fr1ehbJOsBo=
+github.com/igm/sockjs-go v3.0.0+incompatible/go.mod h1:Yu6pvqjNniWNJe07LPObeCG6R77Qc97C6Kss0roF8tU=

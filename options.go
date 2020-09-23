@@ -1,7 +1,7 @@
 package pubsub
 
 import (
-	"pubsub/publication"
+	"github.com/RomanIschenko/pubsub/publication"
 	"time"
 )
 
@@ -42,15 +42,7 @@ type PublishOptions struct {
 	Topics []string
 	Clients []string
 	Users []string
-	Data []byte
-	EventOptions
-}
-
-type PublicationOptions struct {
-	Topics 		[]string
-	Clients 	[]string
-	Users 		[]string
-	Publication publication.Publication
+	Payload publication.Publication
 	EventOptions
 }
 

@@ -62,7 +62,7 @@ type shard struct {
 	mu 				sync.RWMutex
 }
 
-func (s *shard) Publish(opts PublicationOptions) (res result) {
+func (s *shard) Publish(opts PublishOptions) (res result) {
 	if len(opts.Clients) == 0 && len(opts.Topics) == 0 && len(opts.Users) == 0 {
 		return
 	}
@@ -73,13 +73,13 @@ func (s *shard) Publish(opts PublicationOptions) (res result) {
 		if user, ok := s.users[userID]; ok {
 			for client := range user {
 				//client.Publish(opts.Publication)
-				s.queue.Enqueue(client, opts.Publication)
+				s.queue.Enqueue(client, opts.Payload)
 			}
 		}
 	}
 	for _, clientID := range opts.Clients {
 		if client, ok := s.clients[clientID]; ok {
-			s.queue.Enqueue(client, opts.Publication)
+			s.queue.Enqueue(client, opts.Payload)
 		}
 	}
 
@@ -87,9 +87,7 @@ func (s *shard) Publish(opts PublicationOptions) (res result) {
 		if topic, ok := s.topics[topicID]; ok {
 			fmt.Println(topicID, len(topic))
 			for client := range topic {
-				fmt.Println("publishing:", client.ID())
-
-				s.queue.Enqueue(client, opts.Publication)
+				s.queue.Enqueue(client, opts.Payload)
 			}
 		}
 	}
@@ -98,12 +96,10 @@ func (s *shard) Publish(opts PublicationOptions) (res result) {
 
 func (s *shard) Subscribe(opts SubscribeOptions) (res result) {
 	if (len(opts.Users) == 0 && len(opts.Clients) == 0) || len(opts.Topics) == 0 {
-		fmt.Println("OPTs" ,opts)
 		return
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	fmt.Println("Sub:", s.id)
 
 	for _, topicID := range opts.Topics {
 		topic, ok := s.topics[topicID]
@@ -116,7 +112,6 @@ func (s *shard) Subscribe(opts SubscribeOptions) (res result) {
 		for _, clientID := range opts.Clients {
 			fmt.Println(clientID)
 			if client, ok := s.clients[clientID]; ok {
-				fmt.Println("CLIENT IS HERE")
 				subs, ok := s.subs[clientID]
 				if !ok {
 					subs = map[string]*subscription{}
@@ -126,7 +121,6 @@ func (s *shard) Subscribe(opts SubscribeOptions) (res result) {
 				sub, ok := subs[topicID]
 				if ok {
 					if sub.lastTouch > opts.EventOptions.Time {
-						fmt.Println("LAST TOUCHED")
 						continue
 					}
 				} else {

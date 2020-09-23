@@ -2,7 +2,7 @@ package pubsub
 
 import (
 	"errors"
-	"pubsub/publication"
+	"github.com/RomanIschenko/pubsub/publication"
 	"sync"
 )
 

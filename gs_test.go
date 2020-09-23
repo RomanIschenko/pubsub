@@ -3,6 +3,7 @@ package pubsub
 import (
 	"context"
 	"fmt"
+	"github.com/RomanIschenko/pubsub/publication"
 	"github.com/google/uuid"
 	"github.com/igm/sockjs-go/sockjs"
 	"net/http"
@@ -75,7 +76,7 @@ func TestPubsub(t *testing.T) {
 			}
 			pubsub.Publish(PublishOptions{
 				Topics: []string{"chats/global"},
-				Data:   []byte(data),
+				Payload: publication.New([]byte(data)),
 			})
 		}
 	})
