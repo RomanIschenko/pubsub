@@ -25,11 +25,9 @@ func (r *namespaceRegistry) generate(topicID string) topic {
 	_, ns := parseTopicData(topicID)
 	cfg := DefaultNamespaceConfig
 	if ns != "" {
-		r.mu.RLock()
-		if rcfg, ok := r.namespaces[ns]; ok {
+		if rcfg, ok := r.Get(ns); ok {
 			cfg = rcfg
 		}
-		r.mu.Unlock()
 	}
 	return newTopic(cfg)
 }

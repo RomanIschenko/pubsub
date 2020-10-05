@@ -64,7 +64,7 @@ func TestPubsub(t *testing.T) {
 		}
 
 		pubsub.Subscribe(SubscribeOptions{
-			Topics:       []string{"chats/global"},
+			Topics:       []string{"chats:global"},
 			Clients:      []string{string(client.ID())},
 		})
 
@@ -75,7 +75,7 @@ func TestPubsub(t *testing.T) {
 				return
 			}
 			pubsub.Publish(PublishOptions{
-				Topics: []string{"chats/global"},
+				Topics: []string{"chats:global"},
 				Payload: publication.New([]byte(data)),
 			})
 		}
