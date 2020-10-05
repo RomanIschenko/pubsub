@@ -47,6 +47,10 @@ func NewClientID(user, client string) ClientID {
 	return ClientID(client+sep+user)
 }
 
+func (id ClientID) String() string {
+	return string(id)
+}
+
 func (id ClientID) User() string {
 	if len(id) > IDLength+1 {
 		return string(id[IDLength:])

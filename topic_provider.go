@@ -51,7 +51,6 @@ func (p *topicProvider) del(topics []string, s int) {
 
 func (p *topicProvider) get(topics []string) map[int][]string {
 	m := map[int][]string{}
-
 	for _, topic := range topics {
 		if h, err := p.hash([]byte(topic)); err == nil {
 			idx := h % len(p.buckets)

@@ -40,6 +40,7 @@ type Pubsub struct {
 	shards []*shard
 	config Config
 	queue pubQueue
+	nsRegistry *namespaceRegistry
 	topics topicProvider
 }
 
@@ -86,12 +87,15 @@ func (p *Pubsub) distribute(b batch) map[int]batch {
 	return db
 }
 
+func (p *Pubsub) NS() *namespaceRegistry {
+	return p.nsRegistry
+}
+
 func (p *Pubsub) processActionResult(shard int, r result) {
 	if shard >= len(p.shards) || shard < 0 {
 		//fmt.Println("wefojwefiojweiojwef")
 		return
 	}
-	fmt.Println("process", r.topicsUp, r.topicsDown, shard)
 	p.topics.add(r.topicsUp, shard)
 	p.topics.del(r.topicsDown, shard)
 }
@@ -208,15 +212,17 @@ func New(config Config) *Pubsub {
 	shards := make([]*shard, config.Shards)
 
 	queue := newPubQueue(config.PubQueueConfig)
+	nsRegistry := newNamespaceRegistry()
 
 	for i := range shards {
-		shards[i] = newShard(queue, config.ShardConfig)
+		shards[i] = newShard(queue, nsRegistry, config.ShardConfig)
 	}
 
 	return &Pubsub{
 		shards: shards,
 		queue: queue,
 		config: config,
+		nsRegistry: nsRegistry,
 		topics: newTopicProvider(config.TopicBuckets),
 	}
 }

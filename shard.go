@@ -52,11 +52,12 @@ type shard struct {
 	id				string
 	clients  		map[string]*Client
 	users			map[string]map[*Client]struct{}
-	topics 	 		map[string]map[*Client]struct{}
+	topics 	 		map[string]topic
 	inactiveClients map[string]int64
 	invalidClients  map[string]int64
 	subs	 		map[string]map[string]*subscription
 	userSubs 		map[string]map[string]*subscription
+	nsRegistry 		*namespaceRegistry
 	config			ShardConfig
 	queue			pubQueue
 	mu 				sync.RWMutex
@@ -68,7 +69,6 @@ func (s *shard) Publish(opts PublishOptions) (res result) {
 	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	fmt.Println("Publishing:", s.id)
 	for _, userID := range opts.Users {
 		if user, ok := s.users[userID]; ok {
 			for client := range user {
@@ -85,8 +85,7 @@ func (s *shard) Publish(opts PublishOptions) (res result) {
 
 	for _, topicID := range opts.Topics {
 		if topic, ok := s.topics[topicID]; ok {
-			fmt.Println(topicID, len(topic))
-			for client := range topic {
+			for client := range topic.subscribers() {
 				s.queue.Enqueue(client, opts.Payload)
 			}
 		}
@@ -104,7 +103,7 @@ func (s *shard) Subscribe(opts SubscribeOptions) (res result) {
 	for _, topicID := range opts.Topics {
 		topic, ok := s.topics[topicID]
 		if !ok {
-			topic = map[*Client]struct{}{}
+			topic = s.nsRegistry.generate(topicID)
 			s.topics[topicID] = topic
 			res.topicsUp = append(res.topicsUp, topicID)
 		}
@@ -130,7 +129,7 @@ func (s *shard) Subscribe(opts SubscribeOptions) (res result) {
 
 				sub.lastTouch = opts.Time
 				sub.state = activeSub
-				topic[client] = struct{}{}
+				topic.add(client)
 			}
 		}
 		for _, userID := range opts.Users {
@@ -158,7 +157,7 @@ func (s *shard) Subscribe(opts SubscribeOptions) (res result) {
 							continue
 						}
 					}
-					topic[client] = struct{}{}
+					topic.add(client)
 				}
 			}
 		}
@@ -195,8 +194,7 @@ func (s *shard) Unsubscribe(opts UnsubscribeOptions) (res result) {
 					client = s.clients[clientID]
 				}
 				if topic, ok := s.topics[topicID]; ok {
-					delete(topic, client)
-					if len(topic) == 0 {
+					if l, _ := topic.del(client); l == 0 {
 						delete(s.topics, topicID)
 						res.topicsDown = append(res.topicsDown, topicID)
 					}
@@ -240,8 +238,7 @@ func (s *shard) Unsubscribe(opts UnsubscribeOptions) (res result) {
 							continue
 						}
 					}
-					delete(topic, client)
-					if len(topic) == 0 {
+					if l, _ := topic.del(client); l == 0 {
 						delete(s.topics, topicID)
 						res.topicsDown = append(res.topicsDown, topicID)
 						break
@@ -273,9 +270,7 @@ func (s *shard) Unsubscribe(opts UnsubscribeOptions) (res result) {
 
 					client := s.clients[clientID]
 
-					delete(topic, client)
-
-					if len(topic) == 0 {
+					if l, _ := topic.del(client); l == 0 {
 						continue topicLoop
 					}
 				}
@@ -304,8 +299,7 @@ func (s *shard) Unsubscribe(opts UnsubscribeOptions) (res result) {
 								continue
 							}
 						}
-						delete(topic, client)
-						if len(topic) == 0 {
+						if l, _ := topic.del(client); l == 0 {
 							delete(s.topics, topicID)
 							res.topicsDown = append(res.topicsDown, topicID)
 							continue topicLoop
@@ -363,7 +357,7 @@ func (s *shard) Connect(opts ConnectOptions) (*Client, error) {
 				if userSubs, ok := s.userSubs[userID]; ok {
 					for topicID, sub := range userSubs {
 						if sub.state == activeSub {
-							s.topics[topicID][client] = struct{}{}
+							s.topics[topicID].add(client)
 						}
 					}
 				}
@@ -409,7 +403,7 @@ func (s *shard) Disconnect(opts DisconnectOptions) (res result) {
 		}
 		s.clients = map[string]*Client{}
 		s.users = map[string]map[*Client]struct{}{}
-		s.topics = map[string]map[*Client]struct{}{}
+		s.topics = map[string]topic{}
 		s.invalidClients = map[string]int64{}
 		s.inactiveClients = map[string]int64{}
 		s.userSubs = map[string]map[string]*subscription{}
@@ -428,8 +422,7 @@ func (s *shard) Disconnect(opts DisconnectOptions) (res result) {
 					for topicID, sub := range userSubs {
 						if sub.state == activeSub {
 							topic := s.topics[topicID]
-							delete(topic, client)
-							if len(topic) == 0 {
+							if l, _ := topic.del(client); l == 0 {
 								res.topicsDown = append(res.topicsDown, topicID)
 								delete(s.topics, topicID)
 							}
@@ -441,8 +434,7 @@ func (s *shard) Disconnect(opts DisconnectOptions) (res result) {
 					for topicID, sub := range subs {
 						if sub.state == activeSub {
 							topic := s.topics[topicID]
-							delete(topic, client)
-							if len(topic) == 0 {
+							if l, _ := topic.del(client); l == 0 {
 								res.topicsDown = append(res.topicsDown, topicID)
 								delete(s.topics, topicID)
 							}
@@ -465,8 +457,7 @@ func (s *shard) Disconnect(opts DisconnectOptions) (res result) {
 				for topicID, sub := range subs {
 					if sub.state == activeSub {
 						topic := s.topics[topicID]
-						delete(topic, client)
-						if len(topic) == 0 {
+						if l, _ := topic.del(client); l == 0 {
 							res.topicsDown = append(res.topicsDown, topicID)
 							delete(s.topics, topicID)
 						}
@@ -480,8 +471,7 @@ func (s *shard) Disconnect(opts DisconnectOptions) (res result) {
 						for topicID, sub := range userSubs {
 							if sub.state == activeSub {
 								topic := s.topics[topicID]
-								delete(topic, client)
-								if len(topic) == 0 {
+								if l, _ := topic.del(client); l == 0 {
 									res.topicsDown = append(res.topicsDown, topicID)
 									delete(s.topics, topicID)
 								}
@@ -536,8 +526,7 @@ func (s *shard) Clean() (res result) {
 					for topicID, sub := range subs {
 						if sub.state == activeSub {
 							topic := s.topics[topicID]
-							delete(topic, client)
-							if len(topic) == 0 {
+							if l, _ := topic.del(client); l == 0 {
 								res.topicsDown = append(res.topicsDown, topicID)
 								delete(s.topics, topicID)
 							}
@@ -551,8 +540,7 @@ func (s *shard) Clean() (res result) {
 							for topicID, sub := range userSubs {
 								if sub.state == activeSub {
 									topic := s.topics[topicID]
-									delete(topic, client)
-									if len(topic) == 0 {
+									if l, _ := topic.del(client); l == 0 {
 										res.topicsDown = append(res.topicsDown, topicID)
 										delete(s.topics, topicID)
 									}
@@ -573,17 +561,18 @@ func (s *shard) Clean() (res result) {
 	return
 }
 
-func newShard(queue pubQueue, config ShardConfig) *shard {
+func newShard(queue pubQueue, nsRegistry *namespaceRegistry, config ShardConfig) *shard {
 	config = config.validate()
 	return &shard{
 		id: uuid.New().String(),
 		clients: 		 map[string]*Client{},
-		topics: 		 map[string]map[*Client]struct{}{},
+		topics: 		 map[string]topic{},
 		inactiveClients: map[string]int64{},
 		invalidClients:  map[string]int64{},
 		subs: 			 map[string]map[string]*subscription{},
 		users: 			 map[string]map[*Client]struct{}{},
 		userSubs: 		 map[string]map[string]*subscription{},
+		nsRegistry: 	 nsRegistry,
 		config:          config,
 		queue:			 queue,
 	}
