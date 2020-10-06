@@ -2,7 +2,6 @@ package pubsub
 
 import (
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"sync"
 	"time"
@@ -109,7 +108,6 @@ func (s *shard) Subscribe(opts SubscribeOptions) (res result) {
 		}
 
 		for _, clientID := range opts.Clients {
-			fmt.Println(clientID)
 			if client, ok := s.clients[clientID]; ok {
 				subs, ok := s.subs[clientID]
 				if !ok {
@@ -162,7 +160,6 @@ func (s *shard) Subscribe(opts SubscribeOptions) (res result) {
 			}
 		}
 	}
-	fmt.Println(res)
 	return
 }
 

@@ -21,8 +21,15 @@
   <component name="ChangeListManager">
     <list default="true" id="a23b1aad-c634-4c7b-8526-60b5bc9d5db7" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client_id.go" beforeDir="false" afterPath="$PROJECT_DIR$/client_id.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/gs_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/gs_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/namespace_registry.go" beforeDir="false" afterPath="$PROJECT_DIR$/namespace_registry.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pubsub.go" beforeDir="false" afterPath="$PROJECT_DIR$/pubsub.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/shard.go" beforeDir="false" afterPath="$PROJECT_DIR$/shard.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/topic.go" beforeDir="false" afterPath="$PROJECT_DIR$/topic.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/util.go" beforeDir="false" afterPath="$PROJECT_DIR$/util.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -86,6 +93,10 @@
       <screen x="0" y="0" width="1707" height="920" />
     </state>
     <state x="422" y="0" key="FileChooserDialogImpl/0.0.1707.920@0.0.1707.920" timestamp="1601918181098" />
+    <state x="0" y="0" width="1091" height="920" key="find.popup" timestamp="1601991759441">
+      <screen x="0" y="0" width="1707" height="920" />
+    </state>
+    <state x="0" y="0" width="1091" height="920" key="find.popup/0.0.1707.920@0.0.1707.920" timestamp="1601991759441" />
     <state x="179" y="-2" width="1344" height="2556" key="search.everywhere.popup" timestamp="1600367758555">
       <screen x="0" y="0" width="1707" height="920" />
     </state>

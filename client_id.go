@@ -5,7 +5,9 @@ import (
 	"github.com/google/uuid"
 )
 
+//length of uuid
 const IDLength = 36
+//it is placed between ClientID and UserID
 const IDSeparator = "-"
 
 type ClientID string
@@ -53,7 +55,7 @@ func (id ClientID) String() string {
 
 func (id ClientID) User() string {
 	if len(id) > IDLength+1 {
-		return string(id[IDLength:])
+		return string(id[IDLength+1:])
 	}
 	return ""
 }

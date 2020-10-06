@@ -6,11 +6,10 @@ import (
 )
 
 const (
-	AnyClients = -1
-	AnyUsers = -1
+	Any = 0
 )
 
-var DefaultNamespaceConfig = NamespaceConfig{AnyClients, AnyUsers}
+var DefaultNamespaceConfig = NamespaceConfig{}
 
 type NamespaceConfig struct {
 	MaxClients, MaxUsers int

@@ -2,9 +2,8 @@ package pubsub
 
 import (
 	"context"
-	"fmt"
+	"github.com/sirupsen/logrus"
 	"hash/fnv"
-	"os"
 	"time"
 )
 
@@ -17,6 +16,7 @@ type Config struct {
 	ShardConfig   ShardConfig
 	PubQueueConfig PubQueueConfig
 	CleanInterval time.Duration
+	Logger		  *logrus.Logger
 	TopicBuckets  int
 }
 
@@ -33,7 +33,15 @@ func (cfg Config) validate() Config {
 		cfg.CleanInterval = DefaultCleanInterval
 	}
 
+	if cfg.Logger == nil {
+		cfg.Logger = logrus.New()
+	}
+
 	return cfg
+}
+
+type batch struct {
+	clients, users, topics []string
 }
 
 type Pubsub struct {
@@ -42,10 +50,7 @@ type Pubsub struct {
 	queue pubQueue
 	nsRegistry *namespaceRegistry
 	topics topicProvider
-}
-
-type batch struct {
-	clients, users, topics []string
+	logger *logrus.Logger
 }
 
 func (p *Pubsub) hash(b []byte) (int, error) {
@@ -109,6 +114,8 @@ func (p *Pubsub) clean() {
 func (p *Pubsub) Publish(opts PublishOptions) {
 	b := batch{opts.Clients, opts.Users, opts.Topics}
 
+	p.logger.Info("pub", opts)
+
 	for shardIdx, batch := range p.distribute(b) {
 		shard := p.shards[shardIdx]
 		opts.Topics = batch.topics
@@ -118,28 +125,28 @@ func (p *Pubsub) Publish(opts PublishOptions) {
 	}
 }
 
-func (p *Pubsub) logStats() {
-	if file, err := os.OpenFile("stats.txt", os.O_CREATE, 0666); err == nil {
-		for i, shard := range p.shards {
-			shard.mu.RLock()
-			sTopics := len(shard.topics)
-			sClients := len(shard.clients)
-			sUsers := len(shard.users)
-			shard.mu.RUnlock()
-			data := fmt.Sprintf(
-				"SHARD %v:\n\tTopics:%v,\n\tClients:%v,\n\tUsers:%v\n",
-				i, sTopics, sClients, sUsers,
-				)
-			file.Write([]byte(data))
-		}
-	} else {
-		fmt.Println(err)
-	}
-
-}
+//func (p *Pubsub) logStats() {
+//	if file, err := os.OpenFile("stats.txt", os.O_CREATE, 0666); err == nil {
+//		for i, shard := range p.shards {
+//			shard.mu.RLock()
+//			sTopics := len(shard.topics)
+//			sClients := len(shard.clients)
+//			sUsers := len(shard.users)
+//			shard.mu.RUnlock()
+//			data := fmt.Sprintf(
+//				"SHARD %v:\n\tTopics:%v,\n\tClients:%v,\n\tUsers:%v\n",
+//				i, sTopics, sClients, sUsers,
+//				)
+//			file.Write([]byte(data))
+//		}
+//	}
+//
+//}
 
 func (p *Pubsub) Subscribe(opts SubscribeOptions) {
 	b := batch{opts.Clients, opts.Users, nil}
+
+	p.logger.Info("sub", opts)
 
 	for shardIdx, batch := range p.distribute(b) {
 		shard := p.shards[shardIdx]
@@ -152,6 +159,8 @@ func (p *Pubsub) Subscribe(opts SubscribeOptions) {
 func (p *Pubsub) Unsubscribe(opts UnsubscribeOptions) {
 	b := batch{opts.Clients, opts.Users, opts.Topics}
 
+	p.logger.Info("unsub", opts)
+
 	for shardIdx, batch := range p.distribute(b) {
 		shard := p.shards[shardIdx]
 		opts.Topics = batch.topics
@@ -162,6 +171,9 @@ func (p *Pubsub) Unsubscribe(opts UnsubscribeOptions) {
 }
 
 func (p *Pubsub) Connect(opts ConnectOptions) (*Client, error) {
+
+	p.logger.Info("con", opts.ID)
+
 	h, err := opts.ID.Hash()
 	if err != nil {
 		return nil, err
@@ -173,6 +185,8 @@ func (p *Pubsub) Connect(opts ConnectOptions) (*Client, error) {
 func (p *Pubsub) Disconnect(opts DisconnectOptions) {
 	b := batch{opts.Clients, opts.Users, nil}
 
+	p.logger.Info("discon", opts)
+
 	for shardIdx, batch := range p.distribute(b) {
 		shard := p.shards[shardIdx]
 		opts.Users = batch.users
@@ -183,12 +197,14 @@ func (p *Pubsub) Disconnect(opts DisconnectOptions) {
 
 func (p *Pubsub) Start(ctx context.Context) {
 	cleaner := time.NewTicker(p.config.CleanInterval)
-
 	p.queue.Start(ctx)
+
+	p.logger.Info("pubsub started")
 
 	for {
 		select {
 		case <-ctx.Done():
+			p.logger.Info("pubsub is done")
 			return
 		case <-cleaner.C:
 			p.clean()
@@ -200,6 +216,8 @@ func (p *Pubsub) InactivateClient(client *Client) {
 	if client == nil {
 		return
 	}
+
+	p.logger.Info("client_inactivation", client.ID())
 
 	h := client.Hash()
 	idx := h % len(p.shards)
@@ -213,6 +231,7 @@ func New(config Config) *Pubsub {
 
 	queue := newPubQueue(config.PubQueueConfig)
 	nsRegistry := newNamespaceRegistry()
+	topicProvider := newTopicProvider(config.TopicBuckets)
 
 	for i := range shards {
 		shards[i] = newShard(queue, nsRegistry, config.ShardConfig)
@@ -223,6 +242,6 @@ func New(config Config) *Pubsub {
 		queue: queue,
 		config: config,
 		nsRegistry: nsRegistry,
-		topics: newTopicProvider(config.TopicBuckets),
+		topics: topicProvider,
 	}
 }
