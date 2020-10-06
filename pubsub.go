@@ -16,7 +16,7 @@ type Config struct {
 	ShardConfig   ShardConfig
 	PubQueueConfig PubQueueConfig
 	CleanInterval time.Duration
-	Logger		  *logrus.Logger
+	Logger		  logrus.FieldLogger
 	TopicBuckets  int
 }
 
@@ -50,7 +50,7 @@ type Pubsub struct {
 	queue pubQueue
 	nsRegistry *namespaceRegistry
 	topics topicProvider
-	logger *logrus.Logger
+	logger logrus.FieldLogger
 }
 
 func (p *Pubsub) hash(b []byte) (int, error) {
