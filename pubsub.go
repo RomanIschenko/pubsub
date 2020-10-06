@@ -50,7 +50,6 @@ type Pubsub struct {
 	queue pubQueue
 	nsRegistry *namespaceRegistry
 	topics topicProvider
-	logger logrus.FieldLogger
 }
 
 func (p *Pubsub) hash(b []byte) (int, error) {
@@ -114,7 +113,7 @@ func (p *Pubsub) clean() {
 func (p *Pubsub) Publish(opts PublishOptions) {
 	b := batch{opts.Clients, opts.Users, opts.Topics}
 
-	p.logger.Info("pub", opts)
+	p.config.Logger.Info("pub", opts)
 
 	for shardIdx, batch := range p.distribute(b) {
 		shard := p.shards[shardIdx]
@@ -146,7 +145,7 @@ func (p *Pubsub) Publish(opts PublishOptions) {
 func (p *Pubsub) Subscribe(opts SubscribeOptions) {
 	b := batch{opts.Clients, opts.Users, nil}
 
-	p.logger.Info("sub", opts)
+	p.config.Logger.Info("sub", opts)
 
 	for shardIdx, batch := range p.distribute(b) {
 		shard := p.shards[shardIdx]
@@ -159,7 +158,7 @@ func (p *Pubsub) Subscribe(opts SubscribeOptions) {
 func (p *Pubsub) Unsubscribe(opts UnsubscribeOptions) {
 	b := batch{opts.Clients, opts.Users, opts.Topics}
 
-	p.logger.Info("unsub", opts)
+	p.config.Logger.Info("unsub", opts)
 
 	for shardIdx, batch := range p.distribute(b) {
 		shard := p.shards[shardIdx]
@@ -172,7 +171,7 @@ func (p *Pubsub) Unsubscribe(opts UnsubscribeOptions) {
 
 func (p *Pubsub) Connect(opts ConnectOptions) (*Client, error) {
 
-	p.logger.Info("con", opts.ID)
+	p.config.Logger.Info("con", opts.ID)
 
 	h, err := opts.ID.Hash()
 	if err != nil {
@@ -185,7 +184,7 @@ func (p *Pubsub) Connect(opts ConnectOptions) (*Client, error) {
 func (p *Pubsub) Disconnect(opts DisconnectOptions) {
 	b := batch{opts.Clients, opts.Users, nil}
 
-	p.logger.Info("discon", opts)
+	p.config.Logger.Info("discon", opts)
 
 	for shardIdx, batch := range p.distribute(b) {
 		shard := p.shards[shardIdx]
@@ -199,12 +198,12 @@ func (p *Pubsub) Start(ctx context.Context) {
 	cleaner := time.NewTicker(p.config.CleanInterval)
 	p.queue.Start(ctx)
 
-	p.logger.Info("pubsub started")
+	p.config.Logger.Info("pubsub started")
 
 	for {
 		select {
 		case <-ctx.Done():
-			p.logger.Info("pubsub is done")
+			p.config.Logger.Info("pubsub is done")
 			return
 		case <-cleaner.C:
 			p.clean()
@@ -217,7 +216,7 @@ func (p *Pubsub) InactivateClient(client *Client) {
 		return
 	}
 
-	p.logger.Info("client_inactivation", client.ID())
+	p.config.Logger.Info("client_inactivation", client.ID())
 
 	h := client.Hash()
 	idx := h % len(p.shards)
